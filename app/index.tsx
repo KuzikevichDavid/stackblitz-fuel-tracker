@@ -32,6 +32,7 @@ export default function Screen() {
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
+      {/* <FuelTracker/> */}
       <ParallaxScrollView headerImage={<></>} headerBackgroundColor={{
         dark: LOGO.dark,
         light: LOGO.light
