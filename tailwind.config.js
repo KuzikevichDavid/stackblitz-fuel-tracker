@@ -8,9 +8,9 @@ module.exports = {
   theme: {
     container: {
       center: true,
-      padding: "1rem",
+      padding: '1rem',
       screens: {
-        "2xl": "1400px",
+        '2xl': '1400px',
       },
     },
     extend: {
@@ -37,8 +37,8 @@ module.exports = {
           foreground: 'hsl(var(--destructive-foreground))',
         },
         success: {
-          DEFAULT: "hsl(var(--success))",
-          foreground: "hsl(var(--success-foreground))",
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',

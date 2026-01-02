@@ -45,11 +45,7 @@ export default function ParallaxScrollView({
   });
 
   return (
-    <Animated.ScrollView
-      ref={scrollRef}
-      // style={{ flex: 1 }}
-      scrollEventThrottle={16}
-      >
+    <Animated.ScrollView ref={scrollRef} scrollEventThrottle={16}>
       {children}
     </Animated.ScrollView>
   );
