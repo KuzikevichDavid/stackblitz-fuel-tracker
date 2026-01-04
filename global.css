@@ -83,15 +83,6 @@
     background: var(--gradient-card);
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius);
-    box-shadow: 0 4px 20px hsl(0 0% 0% / 0.3);
-  }
-
-  .glow-primary {
-    box-shadow: var(--glow-primary);
-  }
-
-  .glow-success {
-    box-shadow: var(--glow-success);
   }
 
   .digit-display {

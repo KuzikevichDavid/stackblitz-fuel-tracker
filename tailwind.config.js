@@ -6,13 +6,6 @@ module.exports = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
-    container: {
-      center: true,
-      padding: '1rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
     extend: {
       fontFamily: {
         display: ['Orbitron', 'monospace'],
