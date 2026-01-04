@@ -17,6 +17,9 @@ interface Position {
   longitude: number;
 }
 
+const timeInterval = 3000;
+const distanceInterval = 10;
+
 const FuelTracker = () => {
   const [consumptionRate, setConsumptionRate] = useState<string>('8.5');
   const [isTracking, setIsTracking] = useState(false);
@@ -82,9 +85,9 @@ const FuelTracker = () => {
         // Start watching position
         watchIdRef.current = await watchPositionAsync(
           {
-            accuracy: LocationAccuracy.BestForNavigation,
-            timeInterval: 3000,
-            distanceInterval: 5,
+            accuracy: LocationAccuracy.Highest,
+            timeInterval: timeInterval,
+            distanceInterval: distanceInterval,
           },
           (pos) => {
             const current: Position = {
@@ -164,7 +167,7 @@ const FuelTracker = () => {
             // min="0"
             value={consumptionRate}
             onChangeText={setConsumptionRate}
-            editable={isTracking}
+            editable={!isTracking}
             className="h-14 w-full rounded-lg border border-border bg-muted px-4 font-display text-xl text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="8.5"
           />
