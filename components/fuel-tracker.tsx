@@ -7,43 +7,55 @@ import {
   PermissionStatus,
   requestForegroundPermissionsAsync,
   watchPositionAsync,
+  LocationObject,
 } from 'expo-location';
 import { Fuel, MapPin, Navigation, Play, RotateCcw, Square } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TextInput, View } from 'react-native';
+import { useLocationStore } from '@codewithvincent/react-native-gps-filter';
 
 interface Position {
   latitude: number;
   longitude: number;
 }
 
-const timeInterval = 3000;
-const distanceInterval = 10;
+const ACCURACY = LocationAccuracy.BestForNavigation;
+const TIME_INTERVAL = 3000;
+const DISTANCE_INTERVAL = 1;
 
 const FuelTracker = () => {
   const [consumptionRate, setConsumptionRate] = useState<string>('8.5');
   const [isTracking, setIsTracking] = useState(false);
-  const [distance, setDistance] = useState(0);
   const [fuelSpent, setFuelSpent] = useState(0);
-  const [startPosition, setStartPosition] = useState<Position | null>(null);
-  const [currentPosition, setCurrentPosition] = useState<Position | null>(null);
+  const [startPosition, setStartPosition] = useState<LocationObject | null>(null);
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'active' | 'error'>('idle');
 
   const watchIdRef = useRef<LocationSubscription | null>(null);
 
+  const {
+    filterAndAddLocation,
+    routeCoordinates,
+    lastAcceptedPredictedLocation: currentPosition,
+    resetFilters,
+  } = useLocationStore((state) => state);
+
+  const distance = useLocationStore((state) => state.totalDistanceTraveled / 1000);
+
   // Haversine formula to calculate distance between two GPS coordinates
   const calculateDistance = useCallback((pos1: Position, pos2: Position): number => {
+    // translate to Rads
+    const toRad = (value: number): number => (value * Math.PI) / 180;
     const R = 6371; // Earth's radius in kilometers
-    const dLat = (pos2.latitude - pos1.latitude) * (Math.PI / 180);
-    const dLon = (pos2.longitude - pos1.longitude) * (Math.PI / 180);
+    const dLat = toRad(pos2.latitude - pos1.latitude);
+    const dLon = toRad(pos2.longitude - pos1.longitude);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(pos1.latitude * (Math.PI / 180)) *
-        Math.cos(pos2.latitude * (Math.PI / 180)) *
+      Math.cos(toRad(pos1.latitude)) *
+        Math.cos(toRad(pos2.latitude)) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return R * c; // distance in kilometers
   }, []);
 
   // Calculate fuel spent based on distance and consumption rate
@@ -57,55 +69,50 @@ const FuelTracker = () => {
     let { status } = await requestForegroundPermissionsAsync();
     if (status !== PermissionStatus.GRANTED) {
       // toast.error("Geolocation is not supported by your device");
+      console.error('Geolocation is not supported by your device');
       return;
     }
 
     const rate = parseFloat(consumptionRate);
     if (isNaN(rate) || rate <= 0) {
       // toast.error("Please enter a valid consumption rate");
+      console.error('Please enter a valid consumption rate');
       return;
     }
 
     setGpsStatus('acquiring');
-    setDistance(0);
     setFuelSpent(0);
 
-    getCurrentPositionAsync({ accuracy: LocationAccuracy.BestForNavigation }).then(
-      async (position) => {
-        const start: Position = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        setStartPosition(start);
-        setCurrentPosition(start);
+    getCurrentPositionAsync({
+      accuracy: ACCURACY,
+    }).then(
+      async (startPosition) => {
+        setStartPosition(startPosition);
         setIsTracking(true);
         setGpsStatus('active');
         // toast.success("Tracking started from gas station!");
+        console.log('Tracking started from gas station!');
 
         // Start watching position
         watchIdRef.current = await watchPositionAsync(
           {
-            accuracy: LocationAccuracy.Highest,
-            timeInterval: timeInterval,
-            distanceInterval: distanceInterval,
+            accuracy: ACCURACY,
+            // timeInterval: TIME_INTERVAL,
+            distanceInterval: DISTANCE_INTERVAL,
           },
           (pos) => {
-            const current: Position = {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            };
-
-            // if (currentPosition) {
-            // }
-            const dist = calculateDistance(currentPosition || start, current);
-            setDistance((prev) => prev + dist);
-
-            // if (start) {
-            //   const dist = calculateDistance(start, current);
-            //   setDistance(dist);
-            // }
-
-            setCurrentPosition(current);
+            const result = filterAndAddLocation({
+              coords: {
+                accuracy: pos.coords.accuracy || DISTANCE_INTERVAL,
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                speed: pos.coords.speed,
+              },
+              timestamp: pos.timestamp,
+            });
+            console.log(
+              `res:${result.result} pos:${pos.timestamp}  | dist:${((result.distanceTraveled || 0) / 1000).toFixed(5)} | accuracy:${pos.coords.accuracy || DISTANCE_INTERVAL}`
+            );
           },
           (error) => {
             console.error('GPS error:', error);
@@ -122,10 +129,14 @@ const FuelTracker = () => {
   }, [consumptionRate, calculateDistance]);
 
   const stopTracking = useCallback(() => {
+    console.log(watchIdRef.current);
     if (watchIdRef.current !== null) {
       watchIdRef.current.remove();
       watchIdRef.current = null;
     }
+
+    resetFilters();
+
     setIsTracking(false);
     setGpsStatus('idle');
     // toast.info("Tracking stopped");
@@ -133,10 +144,8 @@ const FuelTracker = () => {
 
   const resetTracking = useCallback(() => {
     stopTracking();
-    setDistance(0);
     setFuelSpent(0);
     setStartPosition(null);
-    setCurrentPosition(null);
   }, [stopTracking]);
 
   return (
@@ -237,7 +246,8 @@ const FuelTracker = () => {
             <View className="flex-row items-center justify-center gap-1 text-xs text-muted-foreground">
               <MapPin className="h-3 w-3" />
               <Text>
-                {currentPosition.latitude.toFixed(5)}, {currentPosition.longitude.toFixed(5)}
+                {currentPosition.coords.latitude.toFixed(5)},{' '}
+                {currentPosition.coords.longitude.toFixed(5)}
               </Text>
             </View>
           </View>
@@ -254,10 +264,7 @@ const FuelTracker = () => {
             onPress={startTracking}
             disabled={gpsStatus === 'acquiring'}>
             <Play className="h-6 w-6" />
-            <Text>
-              {gpsStatus === 'acquiring' ? 'ACQUIRING GPS...' : 'START'}
-              {/* {gpsStatus === "acquiring" ? (<Text>ACQUIRING GPS...</Text>) : (<Text>START</Text>)} */}
-            </Text>
+            <Text>{gpsStatus === 'acquiring' ? 'ACQUIRING GPS...' : 'START'}</Text>
           </Button>
         ) : (
           <Button

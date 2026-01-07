@@ -1,5 +1,4 @@
 import FuelTracker from '@/components/fuel-tracker';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
