@@ -1,7 +1,8 @@
 import FuelTracker from '@/components/fuel-tracker';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
+import { Trip, LocationPoint } from '@/models/models';
+import { RealmProvider } from "@realm/react";
 import { Link, Stack } from 'expo-router';
 import { Fuel, MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
@@ -27,13 +28,13 @@ const IMAGE_STYLE: ImageStyle = {
 };
 
 export default function Screen() {
-  const { colorScheme } = useColorScheme();
-
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
       <Animated.ScrollView scrollEventThrottle={16}>
-        <FuelTracker />
+        <RealmProvider schema={[Trip, LocationPoint]} >
+          <FuelTracker />
+        </RealmProvider>
       </Animated.ScrollView>
     </>
   );

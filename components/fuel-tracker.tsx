@@ -12,15 +12,13 @@ import {
 import { Fuel, MapPin, Navigation, Play, RotateCcw, Square } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TextInput, View } from 'react-native';
-import { useLocationStore } from '@codewithvincent/react-native-gps-filter';
-
-interface Position {
-  latitude: number;
-  longitude: number;
-}
+import { useObject, useRealm } from '@realm/react';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from "uuid";
+import { LocationPoint, Trip, updateTripDistance } from '@/models/models';
 
 const ACCURACY = LocationAccuracy.BestForNavigation;
-const TIME_INTERVAL = 3000;
+const TIME_INTERVAL = 1000;
 const DISTANCE_INTERVAL = 1;
 
 const FuelTracker = () => {
@@ -32,30 +30,37 @@ const FuelTracker = () => {
 
   const watchIdRef = useRef<LocationSubscription | null>(null);
 
-  const {
-    filterAndAddLocation,
-    routeCoordinates,
-    lastAcceptedPredictedLocation: currentPosition,
-    resetFilters,
-  } = useLocationStore((state) => state);
+  const [tripId, setTripId] = useState<string>("");
+  const realm = useRealm(); 
+  const trip = useObject(Trip, tripId);
+  const duration = trip?.duration || 0;
+  const points = trip?.points || Array<LocationPoint>();
 
-  const distance = useLocationStore((state) => state.totalDistanceTraveled / 1000);
 
-  // Haversine formula to calculate distance between two GPS coordinates
-  const calculateDistance = useCallback((pos1: Position, pos2: Position): number => {
-    // translate to Rads
-    const toRad = (value: number): number => (value * Math.PI) / 180;
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = toRad(pos2.latitude - pos1.latitude);
-    const dLon = toRad(pos2.longitude - pos1.longitude);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(pos1.latitude)) *
-        Math.cos(toRad(pos2.latitude)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // distance in kilometers
+  const currentPosition = {
+    coords: (points && points.length && points.length > 0) ? {
+      latitude: points?.at(points.length - 1)!.latitude,
+      longitude: points?.at(points.length - 1)!.longitude
+    } : {
+      latitude: 0,
+      longitude: 0
+    }
+  };
+  const distance = trip?.distance || 0
+
+  const addTrip = useCallback(() => {
+    const uuid = uuidv4()
+    realm.write(() => { 
+      realm.create("Trip", { 
+        id: uuid, 
+        date: new Date(), 
+        duration: 0, 
+        distance: 0, 
+        points: [], 
+      }); 
+    });
+    
+    return uuid;
   }, []);
 
   // Calculate fuel spent based on distance and consumption rate
@@ -64,6 +69,56 @@ const FuelTracker = () => {
     const spent = (rate * distance) / 100;
     setFuelSpent(spent);
   }, [distance, consumptionRate]);
+
+  // Start watching position
+  const startWatch = useCallback(async () =>{
+      if (!trip) {
+        console.log("trip is null");
+        return;
+      }
+
+      let startTime = trip.date.getMilliseconds();
+      watchIdRef.current = await watchPositionAsync(
+        {
+          accuracy: ACCURACY,
+          timeInterval: TIME_INTERVAL,
+          distanceInterval: DISTANCE_INTERVAL,
+        },
+        (pos) => {
+          realm.write(() => { 
+            const point: LocationPoint = realm.create(LocationPoint, {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              speed: pos.coords.speed ?? 0,
+              timestamp: new Date(pos.timestamp),
+              accuracy: pos.coords.accuracy ?? 0,
+            });
+            trip.points.push(point);
+            
+            updateTripDistance(trip);
+          });
+
+          console.log("after set point");
+          console.log(`time:${pos.timestamp - startTime},`, {
+              acc: (pos.coords.accuracy || DISTANCE_INTERVAL).toFixed(5),
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+              speed: pos.coords.speed?.toFixed(5),
+            });
+          startTime = pos.timestamp;
+        },
+        (error) => {
+          console.error('GPS error:', error);
+          setGpsStatus('error');
+        }
+      );
+    }, [trip]);
+
+    useEffect(() => {
+      if (!isTracking) return;
+
+      startWatch();
+    }, [isTracking]);
 
   const startTracking = useCallback(async () => {
     let { status } = await requestForegroundPermissionsAsync();
@@ -92,41 +147,17 @@ const FuelTracker = () => {
         setGpsStatus('active');
         // toast.success("Tracking started from gas station!");
         console.log('Tracking started from gas station!');
-
-        // Start watching position
-        watchIdRef.current = await watchPositionAsync(
-          {
-            accuracy: ACCURACY,
-            // timeInterval: TIME_INTERVAL,
-            distanceInterval: DISTANCE_INTERVAL,
-          },
-          (pos) => {
-            const result = filterAndAddLocation({
-              coords: {
-                accuracy: pos.coords.accuracy || DISTANCE_INTERVAL,
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                speed: pos.coords.speed,
-              },
-              timestamp: pos.timestamp,
-            });
-            console.log(
-              `res:${result.result} pos:${pos.timestamp}  | dist:${((result.distanceTraveled || 0) / 1000).toFixed(5)} | accuracy:${pos.coords.accuracy || DISTANCE_INTERVAL}`
-            );
-          },
-          (error) => {
-            console.error('GPS error:', error);
-            setGpsStatus('error');
-          }
-        );
+        const tripId = addTrip();
+        setTripId(() => tripId);
       },
       (error) => {
         console.error('GPS error:', error);
         setGpsStatus('error');
+        console.log("Could not get your location. Please enable GPS.");
         // toast.error("Could not get your location. Please enable GPS.");
       }
     );
-  }, [consumptionRate, calculateDistance]);
+  }, [consumptionRate]);
 
   const stopTracking = useCallback(() => {
     console.log(watchIdRef.current);
@@ -135,11 +166,15 @@ const FuelTracker = () => {
       watchIdRef.current = null;
     }
 
-    resetFilters();
+    setTripId(() => "");
+
+    // resetFilters();
+    // shareLogFile();
 
     setIsTracking(false);
     setGpsStatus('idle');
     // toast.info("Tracking stopped");
+    console.log("Tracking stopped")
   }, []);
 
   const resetTracking = useCallback(() => {
@@ -241,7 +276,7 @@ const FuelTracker = () => {
         </View>
 
         {/* Coordinates Display */}
-        {currentPosition && (
+        {isTracking && currentPosition.coords && (
           <View className="mt-4 text-center">
             <View className="flex-row items-center justify-center gap-1 text-xs text-muted-foreground">
               <MapPin className="h-3 w-3" />
