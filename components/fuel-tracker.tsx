@@ -12,10 +12,10 @@ import {
 import { Fuel, MapPin, Navigation, Play, RotateCcw, Square } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TextInput, View } from 'react-native';
-import { useObject, useRealm } from '@realm/react';
+import { useObject, useQuery, useRealm } from '@realm/react';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from "uuid";
-import { LocationPoint, Trip, updateTripDistance } from '@/models/models';
+import { AppState, LocationPoint, Trip, updateTripDistance } from '@/models/models';
 
 const ACCURACY = LocationAccuracy.BestForNavigation;
 const TIME_INTERVAL = 1000;
@@ -33,6 +33,7 @@ const FuelTracker = () => {
   const [tripId, setTripId] = useState<string>("");
   const realm = useRealm(); 
   const trip = useObject(Trip, tripId);
+  const appState = useQuery(AppState)[0];
   const duration = trip?.duration || 0;
   const points = trip?.points || Array<LocationPoint>();
 
@@ -58,6 +59,8 @@ const FuelTracker = () => {
         distance: 0, 
         points: [], 
       }); 
+
+      appState.lastTripId = uuid;
     });
     
     return uuid;

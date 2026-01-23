@@ -90,3 +90,21 @@ export function updateTripDistance(trip: Trip): void {
 
   trip.distance = total / 1000; // kilometers
 }
+
+export class AppState extends Realm.Object<AppState> {
+  _id!: Realm.BSON.ObjectId;
+  theme!: "light" | "dark";
+  lastTripId?: string;
+  // isLoggedIn!: boolean;
+
+  static schema: Realm.ObjectSchema = {
+    name: "AppState",
+    primaryKey: "_id",
+    properties: {
+      _id: "objectId",
+      theme: "string",
+      lastTripId: "string?",
+      // isLoggedIn: "bool",
+    },
+  };
+}
