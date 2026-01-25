@@ -67,13 +67,12 @@ export function haversineDistance(
 
 export function updateTripDistance(trip: Trip): void {
   let total = trip.distance || 0;
-  for (let i = trip.points.length - 2; i < trip.points.length - 2 && i >= 0; i++) {
-    console.log(`i=${i} i+1=${i+1} len=${trip.points.length}`);
-    
-    const p1 = trip.points[i + 1];
-    const p2 = trip.points[i];
-    console.log(p1);
-    console.log(p2);
+  
+  if (trip.points.length >= 2) {
+    const p1 = trip.points[trip.points.length - 1];
+    const p2 = trip.points[trip.points.length - 2];
+    // console.log(p1);
+    // console.log(p2);
     
     total += haversineDistance(
       p1.latitude,
@@ -82,13 +81,16 @@ export function updateTripDistance(trip: Trip): void {
       p2.longitude
     );
 
-    trip.duration = Math.round(
-      (trip.points[i + 1].timestamp.getTime() -
+    trip.duration = Math.floor(
+      (trip.points[trip.points.length - 1].timestamp.getTime() -
         trip.points[0].timestamp.getTime()) /
       1000); // seonds
   }
-
-  trip.distance = total / 1000; // kilometers
+  trip.distance = (trip.distance ?? 0) + total / 1000; // kilometers
+  
+  // console.log(`total:${total}`);
+  // console.log(`distance:${trip.distance}`);
+  // console.log(`duration:${trip.duration}`);
 }
 
 export class AppState extends Realm.Object<AppState> {

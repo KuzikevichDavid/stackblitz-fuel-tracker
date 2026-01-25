@@ -75,52 +75,53 @@ const FuelTracker = () => {
 
   // Start watching position
   const startWatch = useCallback(async () =>{
-      if (!trip) {
-        console.log("trip is null");
-        return;
-      }
+    if (!trip) {
+      console.log("trip is null");
+      return;
+    }
 
-      let startTime = trip.date.getMilliseconds();
-      watchIdRef.current = await watchPositionAsync(
-        {
-          accuracy: ACCURACY,
-          timeInterval: TIME_INTERVAL,
-          distanceInterval: DISTANCE_INTERVAL,
-        },
-        (pos) => {
-          realm.write(() => { 
-            const point: LocationPoint = realm.create(LocationPoint, {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              speed: pos.coords.speed ?? 0,
-              timestamp: new Date(pos.timestamp),
-              accuracy: pos.coords.accuracy ?? 0,
-            });
-            trip.points.push(point);
-            
-            updateTripDistance(trip);
+    let startTime = trip.date.getMilliseconds();
+    watchIdRef.current = await watchPositionAsync(
+      {
+        accuracy: ACCURACY,
+        timeInterval: TIME_INTERVAL,
+        distanceInterval: DISTANCE_INTERVAL,
+      },
+      (pos) => {
+        realm.write(() => { 
+          const point: LocationPoint = realm.create(LocationPoint, {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            speed: pos.coords.speed ?? 0,
+            timestamp: new Date(pos.timestamp),
+            accuracy: pos.coords.accuracy ?? 0,
           });
 
-          console.log(`time:${pos.timestamp - startTime},`, {
-              acc: (pos.coords.accuracy || DISTANCE_INTERVAL).toFixed(5),
-              lat: pos.coords.latitude,
-              lon: pos.coords.longitude,
-              speed: pos.coords.speed?.toFixed(5),
-            });
-          startTime = pos.timestamp;
-        },
-        (error) => {
-          console.error('GPS error:', error);
-          setGpsStatus('error');
-        }
-      );
-    }, [trip]);
+          trip.points.push(point);
+          
+          updateTripDistance(trip);
+        });
 
-    useEffect(() => {
-      if (!isTracking) return;
+        /* console.log(`time:${pos.timestamp - startTime},`, {
+            acc: (pos.coords.accuracy || DISTANCE_INTERVAL).toFixed(5),
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            speed: pos.coords.speed?.toFixed(5),
+          }); */
+        startTime = pos.timestamp;
+      },
+      (error) => {
+        console.error('GPS error:', error);
+        setGpsStatus('error');
+      }
+    );
+  }, [trip]);
 
-      startWatch();
-    }, [isTracking]);
+  useEffect(() => {
+    if (!isTracking) return;
+
+    startWatch();
+  }, [isTracking]);
 
   const startTracking = useCallback(async () => {
     let { status } = await requestForegroundPermissionsAsync();
@@ -143,14 +144,14 @@ const FuelTracker = () => {
     getCurrentPositionAsync({
       accuracy: ACCURACY,
     }).then(
-      async (startPosition) => {
+      (startPosition) => {
         setStartPosition(startPosition);
-        setIsTracking(true);
         setGpsStatus('active');
-        // toast.success("Tracking started from gas station!");
-        console.log('Tracking started from gas station!');
         const tripId = addTrip();
         setTripId(() => tripId);
+        setIsTracking(true);
+        // toast.success("Tracking started from gas station!");
+        console.log('Tracking started from gas station!');
       },
       (error) => {
         console.error('GPS error:', error);

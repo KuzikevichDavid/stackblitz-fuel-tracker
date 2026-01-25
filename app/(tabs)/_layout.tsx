@@ -113,7 +113,7 @@ function HeaderRight({ color } : Props) {
   return (
     <>
       <ThemeToggle />
-      <Link href="../modal" asChild>
+      <Link href="../history" asChild>
         <Pressable>
           {({ pressed }) => (
             <FontAwesome

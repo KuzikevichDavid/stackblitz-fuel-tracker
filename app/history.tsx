@@ -7,8 +7,24 @@ import { StatusBar } from 'expo-status-bar';
 import { Fuel, MapPinned, Trash2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function ModalScreen() {
+const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
+  day: '2-digit',
+  month: '2-digit',
+  year: '2-digit',
+  // hour: '2-digit',
+  // minute: '2-digit'
+});
+
+const timeFormat = (secondsDiff: number) => {
+  const minutes = Math.floor(secondsDiff / 60); 
+  const seconds = secondsDiff % 60;
+  return `${minutes}:${seconds}`;
+}
+
+export default function HistoryScreen() {
+  const insets = useSafeAreaInsets();
   const realm = useRealm();
   const trips = useQuery(Trip);
   const state = useQuery(AppState)[0];
@@ -17,17 +33,19 @@ export default function ModalScreen() {
 
   return (
     <>
-      {/* <Stack.Screen options={{ headerLeft: () => <Fuel className="h-8 w-8" color={colors.text}/>, }} /> */}
-      <View style={styles.container}>
-        <Text style={styles.title}>Modal</Text>
-        <View style={styles.separator} /* lightColor="#eee" darkColor="rgba(255,255,255,0.1)" */ />
-        {/* <SafeAreaView> */}
+      <View style={{
+        paddingBottom: insets.bottom, 
+        ...styles.container
+      }}>
+        <Text style={styles.title}>Trip history</Text>
+        <View style={styles.separator} />
+        {/* <SafeAreaView style={{paddingBottom: insets.bottom}}> */}
           <FlatList
             data={trips.sorted("date")}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={{ flexDirection: "row", margin: 10 }}>
-                <Text>{`Trip: ${item.date.toLocaleString(undefined, {formatMatcher: 'best fit'})}; km:${item.distance}; points:${item.points.length}`}</Text>
+              <View style={styles.listRow}>
+                
                 <Link href="/(tabs)/map" asChild>
                   <Pressable>
                     {({ pressed }) => {
@@ -35,11 +53,20 @@ export default function ModalScreen() {
                         realm.write(() => { state.lastTripId = item.id});
                       }
 
-                      return (<><MapPinned title='show' color={colors.text} /* size={15} *//></>);
+                      return (
+                        <View style={{borderBlockColor: colors.border, ...styles.listRow}}>
+                          <MapPinned title='show' color={colors.text} />
+                          <Text>
+                            {`Trip: ${dateFormatter.format(item.date)} - ${timeFormat(item.duration ?? 0)};  km:${item.distance?.toFixed(2)}; points:${item.points.length}`}
+                          </Text>
+                        </View>
+                      );
                     }} 
                   </Pressable>
                 </Link>
-                <Pressable onPress={() => realm.write(() => { realm.delete(item) })}>
+                <Pressable 
+                  style={{borderBlockColor: colors.border}} 
+                  onPress={() => realm.write(() => { realm.delete(item) })}>
                   <Trash2 title='delete' color={colors.text}/>
                 </Pressable>
               </View>
@@ -62,6 +89,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  listRow: { 
+    flexDirection: "row", 
+    margin: 10 
   },
   separator: {
     marginVertical: 30,

@@ -13,6 +13,7 @@ import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
 import Realm from "realm";
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -49,9 +50,11 @@ export default function RootLayout() {
   } */
 
   return (
-    <RealmProvider schema={[Trip, LocationPoint, AppState]} >
-      <RootLayoutNav />
-    </RealmProvider>
+    <SafeAreaProvider>
+      <RealmProvider schema={[Trip, LocationPoint, AppState]} >
+        <RootLayoutNav />
+      </RealmProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -81,7 +84,7 @@ function RootLayoutNav() {
     <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="history" options={{ presentation: 'modal' }} />
       </Stack>
       <PortalHost />
     </ThemeProvider>

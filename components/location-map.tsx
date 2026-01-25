@@ -1,9 +1,9 @@
 import { Text } from '@/components/ui/text';
 import { AppState, Trip } from "@/models/models";
 import { useObject, useQuery } from "@realm/react";
+import { NavigationIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
-// import MapView, { LatLng, Marker, Polyline, Region } from "react-native-maps";
 import { LatLngLiteral, LeafletMap, Marker, Polyline } from 'react-native-leaflet-plus';
 
 export default function LocationMap() {
@@ -12,20 +12,11 @@ export default function LocationMap() {
   if (!tripId) return null;
   
   const trip = useObject(Trip, tripId);
-  // const [region, setRegion] = useState<Region | null>(null);
   const [routeCoords, setRouteCoords] = useState<LatLngLiteral[]>([]);
 
   useEffect(() => {
     if (!(trip?.points) || trip?.points.length === 0) return;
 
-    // setRegion(() => {
-    //   return {
-    //     latitude: trip.points[trip.points.length - 1].latitude,
-    //     longitude: trip.points[trip.points.length - 1].longitude,
-    //     latitudeDelta: 0.01,
-    //     longitudeDelta: 0.01,
-    //   }
-    // });
     setRouteCoords((prev) => {
       /* if (trip.points.length > prev.length){
         const add = trip.points.slice(trip.points.length - prev.length);
@@ -36,19 +27,10 @@ export default function LocationMap() {
     });
   }, [trip]);
 
-  // if (!region) return null;
   if (routeCoords.length === 0) return <Text style={styles.container}>Trip is empty</Text>;
 
   return (
     <View style={styles.container}>
-      {/* <MapView style={styles.map} region={region} googleMapId="">
-        {routeCoords.length > 0 && (
-          <>
-            <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#007AFF" />
-            <Marker coordinate={routeCoords[routeCoords.length - 1]} title="You" />
-          </>
-        )} 
-      </MapView> */}
       <LeafletMap
         style={styles.map}
         options={{
@@ -67,6 +49,12 @@ export default function LocationMap() {
           latlng={routeCoords[routeCoords.length - 1]}
           options={{
             title: 'You',
+            icon: { 
+              icon: {
+                iconUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1hcC1waW4taWNvbiBsdWNpZGUtbWFwLXBpbiI+PHBhdGggZD0iTTIwIDEwYzAgNC45OTMtNS41MzkgMTAuMTkzLTcuMzk5IDExLjc5OWExIDEgMCAwIDEtMS4yMDIgMEM5LjUzOSAyMC4xOTMgNCAxNC45OTMgNCAxMGE4IDggMCAwIDEgMTYgMCIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTAiIHI9IjMiLz48L3N2Zz4=",
+                iconSize: [20, 20],
+              }, 
+            }
           }}
           onPress={() => console.log('Marker pressed!')}
         />
