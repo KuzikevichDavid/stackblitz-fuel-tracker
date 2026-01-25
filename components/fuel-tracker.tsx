@@ -101,7 +101,6 @@ const FuelTracker = () => {
             updateTripDistance(trip);
           });
 
-          console.log("after set point");
           console.log(`time:${pos.timestamp - startTime},`, {
               acc: (pos.coords.accuracy || DISTANCE_INTERVAL).toFixed(5),
               lat: pos.coords.latitude,

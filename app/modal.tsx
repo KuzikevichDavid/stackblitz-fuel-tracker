@@ -1,15 +1,17 @@
 import { Text } from '@/components/ui/text';
 import { NAV_THEME } from '@/lib/theme';
-import { Trip } from '@/models/models';
-import { useQuery } from '@realm/react';
-import { Stack } from 'expo-router';
+import { AppState, Trip } from '@/models/models';
+import { useQuery, useRealm } from '@realm/react';
+import { Link, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Fuel } from 'lucide-react-native';
+import { Fuel, MapPinned, Trash2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
-import { FlatList, Platform, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 export default function ModalScreen() {
+  const realm = useRealm();
   const trips = useQuery(Trip);
+  const state = useQuery(AppState)[0];
   const { colorScheme } = useColorScheme();
   const {colors} = NAV_THEME[colorScheme ?? 'light'];
 
@@ -25,14 +27,21 @@ export default function ModalScreen() {
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <View style={{ flexDirection: "row", margin: 10 }}>
-                <Text>{`Trip: ${item.date.toLocaleTimeString()}; km:${item.distance}`}</Text>
-                {/* <Pressable onPress={() => realm.write(() => { item.isComplete = !item.isComplete })}>
-                  <Text>{item.isComplete ? "✅" : "☑️"}</Text>
-                </Pressable>
-                <Text style={{ paddingHorizontal: 10 }}>{item.description}</Text>
+                <Text>{`Trip: ${item.date.toLocaleString(undefined, {formatMatcher: 'best fit'})}; km:${item.distance}; points:${item.points.length}`}</Text>
+                <Link href="/(tabs)/map" asChild>
+                  <Pressable>
+                    {({ pressed }) => {
+                      if (pressed) {
+                        realm.write(() => { state.lastTripId = item.id});
+                      }
+
+                      return (<><MapPinned title='show' color={colors.text} /* size={15} *//></>);
+                    }} 
+                  </Pressable>
+                </Link>
                 <Pressable onPress={() => realm.write(() => { realm.delete(item) })}>
-                  <Text>🗑️</Text>
-                </Pressable> */}
+                  <Trash2 title='delete' color={colors.text}/>
+                </Pressable>
               </View>
             )}
           />
