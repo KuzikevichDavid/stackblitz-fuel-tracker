@@ -22,8 +22,6 @@ const TIME_INTERVAL = 1000;
 const DISTANCE_INTERVAL = 1;
 
 const FuelTracker = () => {
-  const [consumptionRate, setConsumptionRate] = useState<string>('8.5');
-  const [isTracking, setIsTracking] = useState(false);
   const [fuelSpent, setFuelSpent] = useState(0);
   const [startPosition, setStartPosition] = useState<LocationObject | null>(null);
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'active' | 'error'>('idle');
@@ -34,9 +32,19 @@ const FuelTracker = () => {
   const realm = useRealm(); 
   const trip = useObject(Trip, tripId);
   const appState = useQuery(AppState)[0];
+  const { isTracking, consumptionRate } = appState;
+  const setIsTracking = useCallback((newState: boolean) => {
+    realm.write(() => {
+      appState.isTracking = newState;
+    })
+  }, []);
+  const setConsumptionRate = useCallback((newRate: string) => {
+    realm.write(() => {
+      appState.consumptionRate = newRate;
+    })
+  }, []);
   const duration = trip?.duration || 0;
   const points = trip?.points || Array<LocationPoint>();
-
 
   const currentPosition = {
     coords: (points && points.length && points.length > 0) ? {
@@ -80,7 +88,6 @@ const FuelTracker = () => {
       return;
     }
 
-    let startTime = trip.date.getMilliseconds();
     watchIdRef.current = await watchPositionAsync(
       {
         accuracy: ACCURACY,
@@ -108,7 +115,6 @@ const FuelTracker = () => {
             lon: pos.coords.longitude,
             speed: pos.coords.speed?.toFixed(5),
           }); */
-        startTime = pos.timestamp;
       },
       (error) => {
         console.error('GPS error:', error);
@@ -120,6 +126,9 @@ const FuelTracker = () => {
   useEffect(() => {
     if (!isTracking) return;
 
+    realm.write(() => {
+      appState.lastTripId = tripId;
+    });
     startWatch();
   }, [isTracking]);
 
@@ -145,7 +154,6 @@ const FuelTracker = () => {
       accuracy: ACCURACY,
     }).then(
       (startPosition) => {
-        setStartPosition(startPosition);
         setGpsStatus('active');
         const tripId = addTrip();
         setTripId(() => tripId);

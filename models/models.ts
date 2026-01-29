@@ -84,7 +84,7 @@ export function updateTripDistance(trip: Trip): void {
     trip.duration = Math.floor(
       (trip.points[trip.points.length - 1].timestamp.getTime() -
         trip.points[0].timestamp.getTime()) /
-      1000); // seonds
+      1000); // seconds
   }
   trip.distance = (trip.distance ?? 0) + total / 1000; // kilometers
   
@@ -97,7 +97,8 @@ export class AppState extends Realm.Object<AppState> {
   _id!: Realm.BSON.ObjectId;
   theme!: "light" | "dark";
   lastTripId?: string;
-  // isLoggedIn!: boolean;
+  isTracking!: boolean;
+  consumptionRate!: string;
 
   static schema: Realm.ObjectSchema = {
     name: "AppState",
@@ -106,7 +107,33 @@ export class AppState extends Realm.Object<AppState> {
       _id: "objectId",
       theme: "string",
       lastTripId: "string?",
-      // isLoggedIn: "bool",
+      isTracking: "bool",
+      consumptionRate: "string",
     },
   };
 }
+
+export const realmConfig: Realm.Configuration = {
+  schema: [Trip, LocationPoint, AppState],
+  schemaVersion: 1,
+  onMigration: (oldRealm, newRealm) => {
+    if (oldRealm.schemaVersion < 1) {
+      const oldObjects = oldRealm.objects("AppState");
+      const newObjects = newRealm.objects("AppState");
+
+      for (let i = 0; i < oldObjects.length; i++) {
+        (newObjects[i] as any).isTracking = false; 
+        (newObjects[i] as any).consumptionRate = '8.5'; 
+      }
+    }
+  },
+  onFirstOpen: (realm: Realm) => {
+    realm.create('AppState', {
+      _id: new Realm.BSON.ObjectId(),
+      theme: "dark",
+      lastTripId: '',
+      isTracking: false,
+      consumptionRate: '8.5',
+    });
+  }
+};

@@ -18,11 +18,6 @@ export default function LocationMap() {
     if (!(trip?.points) || trip?.points.length === 0) return;
 
     setRouteCoords((prev) => {
-      /* if (trip.points.length > prev.length){
-        const add = trip.points.slice(trip.points.length - prev.length);
-        prev.push(...(add.map((v) => { return { lat: v.latitude, lng: v.longitude }})));
-      } 
-      return prev; */
       return trip.points.map((v) => { return { lat: v.latitude, lng: v.longitude }});
     });
   }, [trip]);

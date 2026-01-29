@@ -1,35 +1,13 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Pressable, View, StyleSheet } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { NAV_THEME } from '@/lib/theme';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Fuel, MoonStarIcon, SunIcon } from 'lucide-react-native';
-
-const SCREEN_OPTIONS = {
-  title: 'FUEL TRACKER',
-  headerTransparent: false,
-  headerLeft: () => <HeaderIcon />,
-  headerRight: () => (
-            <>
-              <ThemeToggle />
-              <Link href="../modal" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="map-marker"
-                      size={25}
-                      // color={NAV_THEME[colorScheme ?? 'light'].colors.text}
-                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
-            </>
-          ),
-};
+import { useQuery, useRealm } from '@realm/react';
+import { AppState } from '@/models/models';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -47,21 +25,12 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
-        // headerTitleAlign: 'center',
-        /* headerLeft: () => { 
-            console.log('header' + colors.text);
-          return (<HeaderIcon color={colors.text}/>)
-        }, */
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        // headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Tracker',
           tabBarIcon: ({ color }) => <TabBarIcon name="truck" color={color} />,
-          // headerLeft: () => <HeaderIcon color={colors.text}/>,
           headerRight: () => <HeaderRight color={colors.text} />,
         }}
       />
@@ -70,7 +39,6 @@ export default function TabLayout() {
         options={{
           title: 'Map',
           tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
-          // headerLeft: () => <HeaderIcon color={colors.text}/>,
           headerRight: () => <HeaderRight color={colors.text}/>
         }}
       />
@@ -93,15 +61,23 @@ const THEME_ICONS = {
 
 function ThemeToggle() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
+  const realm = useRealm();
+  const appState = useQuery(AppState)[0];
 
   return (
-    <Button
-      onPress={() => toggleColorScheme()}
-      size="icon"
-      variant="ghost"
+    <Pressable
+      onPress={() => {
+        toggleColorScheme();
+
+        realm.write(() => {
+          appState.theme = colorScheme === 'dark' ? 'light' : 'dark';
+        });
+      }}
+      // size="icon"
+      // variant="ghost"
       className="ios:size-9 rounded-full web:mx-4">
-      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-5" />
-    </Button>
+      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-5" style={styles.themeIcon} />
+    </Pressable>
   );
 }
 
@@ -112,6 +88,7 @@ interface Props {
 function HeaderRight({ color } : Props) {
   return (
     <>
+    {/* <View style={styles.container}> */}
       <ThemeToggle />
       <Link href="../history" asChild>
         <Pressable>
@@ -125,6 +102,17 @@ function HeaderRight({ color } : Props) {
           )}
         </Pressable>
       </Link>
+    {/* </View> */}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    gap: 5 },
+  themeIcon: {
+    marginRight: 3,
+ },
+});

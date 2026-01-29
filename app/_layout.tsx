@@ -1,17 +1,13 @@
 import '@/global.css';
 
 import { NAV_THEME } from '@/lib/theme';
-import { AppState, LocationPoint, Trip } from '@/models/models';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { AppState, realmConfig } from '@/models/models';
+import { ThemeProvider } from '@react-navigation/native';
 import { RealmProvider, useQuery, useRealm } from '@realm/react';
 import { PortalHost } from '@rn-primitives/portal';
-import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
-import Realm from "realm";
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -25,33 +21,10 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-// SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout() {
-  /* const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  } */
-
   return (
     <SafeAreaProvider>
-      <RealmProvider schema={[Trip, LocationPoint, AppState]} >
+      <RealmProvider {...realmConfig} >
         <RootLayoutNav />
       </RealmProvider>
     </SafeAreaProvider>
@@ -62,22 +35,18 @@ function RootLayoutNav() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const realm = useRealm();
   const state = useQuery(AppState)[0];
-
-  if (!state) {
-    realm.write(() => {
-      realm.create('AppState', {
-        _id: new Realm.BSON.ObjectId(),
-        theme: "dark",
-        lastTripId: '',
-        // isLoggedIn: false,
-      });
-    });
-  }
   
   useEffect(() => {
     // Force a specific starting theme (e.g., 'dark') when the app loads
     // You can read the user preference from AsyncStorage here if needed
     setColorScheme(state?.theme ?? 'dark'); // or 'light', or 'system'
+    return () => {
+      if (realm.isClosed) return;
+
+      realm.write(() => {
+        state.isTracking = false;
+      });
+    };
   }, []);
 
   return (

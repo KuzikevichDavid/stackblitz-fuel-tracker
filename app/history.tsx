@@ -32,51 +32,45 @@ export default function HistoryScreen() {
   const {colors} = NAV_THEME[colorScheme ?? 'light'];
 
   return (
-    <>
-      <View style={{
-        paddingBottom: insets.bottom, 
-        ...styles.container
-      }}>
-        <Text style={styles.title}>Trip history</Text>
-        <View style={styles.separator} />
-        {/* <SafeAreaView style={{paddingBottom: insets.bottom}}> */}
-          <FlatList
-            data={trips.sorted("date")}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.listRow}>
-                
-                <Link href="/(tabs)/map" asChild>
-                  <Pressable>
-                    {({ pressed }) => {
-                      if (pressed) {
-                        realm.write(() => { state.lastTripId = item.id});
-                      }
+    <View style={{
+      paddingBottom: insets.bottom, 
+      ...styles.container
+    }}>
+      <Text style={styles.title}>Trip history</Text>
+      <FlatList
+        data={trips.sorted("date")}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.listRow}>
+            <Link href="/(tabs)/map" asChild>
+              <Pressable>
+                {({ pressed }) => {
+                  if (pressed) {
+                    realm.write(() => { state.lastTripId = item.id});
+                  }
 
-                      return (
-                        <View style={{borderBlockColor: colors.border, ...styles.listRow}}>
-                          <MapPinned title='show' color={colors.text} />
-                          <Text>
-                            {`Trip: ${dateFormatter.format(item.date)} - ${timeFormat(item.duration ?? 0)};  km:${item.distance?.toFixed(2)}; points:${item.points.length}`}
-                          </Text>
-                        </View>
-                      );
-                    }} 
-                  </Pressable>
-                </Link>
-                <Pressable 
-                  style={{borderBlockColor: colors.border}} 
-                  onPress={() => realm.write(() => { realm.delete(item) })}>
-                  <Trash2 title='delete' color={colors.text}/>
-                </Pressable>
-              </View>
-            )}
-          />
-        {/* </SafeAreaView>     */}
-        {/* Use a light status bar on iOS to account for the black space above the modal */}
-        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
-      </View>
-    </>
+                  return (
+                    <View style={{borderBlockColor: colors.border, ...styles.listRow}}>
+                      <MapPinned title='show' color={colors.text} />
+                      <Text>
+                        {`Trip: ${dateFormatter.format(item.date)} - ${timeFormat(item.duration ?? 0)};  km:${item.distance?.toFixed(2)}; points:${item.points.length}`}
+                      </Text>
+                    </View>
+                  );
+                }} 
+              </Pressable>
+            </Link>
+            <Pressable 
+              style={{borderBlockColor: colors.border}} 
+              onPress={() => realm.write(() => { realm.delete(item) })}>
+              <Trash2 title='delete' color={colors.text}/>
+            </Pressable>
+          </View>
+        )}
+      />
+      {/* Use a light status bar on iOS to account for the black space above the modal */}
+      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+    </View>
   );
 }
 
