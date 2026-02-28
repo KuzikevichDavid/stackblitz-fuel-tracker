@@ -1,11 +1,13 @@
 import { Text } from '@/components/ui/text';
 import { NAV_THEME } from '@/lib/theme';
 import { AppState, Trip } from '@/models/models';
+import { Theme } from '@react-navigation/native';
 import { useQuery, useRealm } from '@realm/react';
 import { Link, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Fuel, MapPinned, Trash2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
+import { useEffect, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,14 +15,12 @@ const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: '2-digit',
   month: '2-digit',
   year: '2-digit',
-  // hour: '2-digit',
-  // minute: '2-digit'
 });
 
 const timeFormat = (secondsDiff: number) => {
   const minutes = Math.floor(secondsDiff / 60); 
   const seconds = secondsDiff % 60;
-  return `${minutes}:${seconds}`;
+  return `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
 }
 
 export default function HistoryScreen() {
@@ -29,7 +29,9 @@ export default function HistoryScreen() {
   const trips = useQuery(Trip);
   const state = useQuery(AppState)[0];
   const { colorScheme } = useColorScheme();
-  const {colors} = NAV_THEME[colorScheme ?? 'light'];
+  const theme = NAV_THEME[colorScheme ?? 'light'];
+  const { colors } = theme;
+  const styles = getStyles(theme);
 
   return (
     <View style={{
@@ -41,7 +43,7 @@ export default function HistoryScreen() {
         data={trips.sorted("date")}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.listRow}>
+          <View style={{...styles.listRow, ...styles.container}}>
             <Link href="/(tabs)/map" asChild>
               <Pressable>
                 {({ pressed }) => {
@@ -50,7 +52,7 @@ export default function HistoryScreen() {
                   }
 
                   return (
-                    <View style={{borderBlockColor: colors.border, ...styles.listRow}}>
+                    <View style={{borderBlockColor: colors.border, ...styles.listRow, ...styles.container}}>
                       <MapPinned title='show' color={colors.text} />
                       <Text>
                         {`Trip: ${dateFormatter.format(item.date)} - ${timeFormat(item.duration ?? 0)};  km:${item.distance?.toFixed(2)}; points:${item.points.length}`}
@@ -74,7 +76,7 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = ({ colors } : Theme ) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
@@ -86,7 +88,10 @@ const styles = StyleSheet.create({
   },
   listRow: { 
     flexDirection: "row", 
-    margin: 10 
+    margin: 10,
+    gap: 5,
+    borderColor: colors.border,
+    borderWidth: 1
   },
   separator: {
     marginVertical: 30,

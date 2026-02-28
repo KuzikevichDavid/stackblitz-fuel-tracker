@@ -8,6 +8,8 @@ import {
   requestForegroundPermissionsAsync,
   watchPositionAsync,
   LocationObject,
+  getProviderStatusAsync,
+  hasServicesEnabledAsync,
 } from 'expo-location';
 import { Fuel, MapPin, Navigation, Play, RotateCcw, Square } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,7 +26,7 @@ const DISTANCE_INTERVAL = 1;
 const FuelTracker = () => {
   const [fuelSpent, setFuelSpent] = useState(0);
   const [startPosition, setStartPosition] = useState<LocationObject | null>(null);
-  const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'active' | 'error'>('idle');
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'active' | 'error' | 'disabled'>('idle');
 
   const watchIdRef = useRef<LocationSubscription | null>(null);
 
@@ -133,11 +135,17 @@ const FuelTracker = () => {
   }, [isTracking]);
 
   const startTracking = useCallback(async () => {
-    let { status } = await requestForegroundPermissionsAsync();
+    const { status } = await requestForegroundPermissionsAsync();
     if (status !== PermissionStatus.GRANTED) {
       // toast.error("Geolocation is not supported by your device");
       console.error('Geolocation is not supported by your device');
       return;
+    }
+
+    const isEnabledGPS = await hasServicesEnabledAsync();
+    if (!isEnabledGPS) {
+      setGpsStatus('disabled');
+      console.log("Could not get your location. Please enable GPS.");
     }
 
     const rate = parseFloat(consumptionRate);
@@ -178,9 +186,6 @@ const FuelTracker = () => {
     }
 
     setTripId(() => "");
-
-    // resetFilters();
-    // shareLogFile();
 
     setIsTracking(false);
     setGpsStatus('idle');
@@ -270,7 +275,7 @@ const FuelTracker = () => {
                 ? 'bg-success'
                 : gpsStatus === 'acquiring'
                   ? 'bg-primary'
-                  : gpsStatus === 'error'
+                  : (gpsStatus === 'error' || gpsStatus === 'disabled')
                     ? 'bg-destructive'
                     : 'bg-muted-foreground'
             }`}
@@ -282,7 +287,9 @@ const FuelTracker = () => {
                 ? 'Acquiring GPS...'
                 : gpsStatus === 'error'
                   ? 'GPS Error'
-                  : 'GPS Standby'}
+                  : gpsStatus === 'disabled' 
+                    ? 'GPS service disabled' 
+                    : 'GPS Standby'}
           </Text>
         </View>
 

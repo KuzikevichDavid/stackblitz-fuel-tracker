@@ -39,7 +39,10 @@ function RootLayoutNav() {
   useEffect(() => {
     // Force a specific starting theme (e.g., 'dark') when the app loads
     // You can read the user preference from AsyncStorage here if needed
-    setColorScheme(state?.theme ?? 'dark'); // or 'light', or 'system'
+    console.log(`app state theme = ${state?.theme}, else ${state?.theme ?? 'dark'}, curr scheme=${colorScheme}`);
+    if (colorScheme !== (state?.theme ?? 'dark')) {
+      setColorScheme(state?.theme ?? 'dark'); // or 'light', or 'system'
+    }
     return () => {
       if (realm.isClosed) return;
 
@@ -50,12 +53,14 @@ function RootLayoutNav() {
   }, []);
 
   return (
-    <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="history" options={{ presentation: 'modal' }} />
-      </Stack>
+    <>
+      <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="history" options={{ presentation: 'modal' }} />
+        </Stack>
+      </ThemeProvider>
       <PortalHost />
-    </ThemeProvider>
+    </>
   );
 }
