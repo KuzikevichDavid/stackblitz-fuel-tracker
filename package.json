@@ -49,6 +49,7 @@
     "clsx": "^2.1.1",
     "expo": "^54.0.32",
     "expo-asset": "^12.0.12",
+    "expo-background-task": "~1.0.10",
     "expo-constants": "~18.0.12",
     "expo-dev-client": "~6.0.20",
     "expo-file-system": "^19.0.21",

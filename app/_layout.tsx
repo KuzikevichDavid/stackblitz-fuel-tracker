@@ -1,7 +1,7 @@
 import '@/global.css';
 
 import { NAV_THEME } from '@/lib/theme';
-import { AppState, realmConfig } from '@/models/models';
+import realm, { AppState } from '@/models/models';
 import { ThemeProvider } from '@react-navigation/native';
 import { RealmProvider, useQuery, useRealm } from '@realm/react';
 import { PortalHost } from '@rn-primitives/portal';
@@ -24,7 +24,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <RealmProvider {...realmConfig} >
+      <RealmProvider realm={realm} /* {...realmConfig} */>
         <RootLayoutNav />
       </RealmProvider>
     </SafeAreaProvider>
@@ -35,11 +35,13 @@ function RootLayoutNav() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const realm = useRealm();
   const state = useQuery(AppState)[0];
-  
+
   useEffect(() => {
     // Force a specific starting theme (e.g., 'dark') when the app loads
     // You can read the user preference from AsyncStorage here if needed
-    console.log(`app state theme = ${state?.theme}, else ${state?.theme ?? 'dark'}, curr scheme=${colorScheme}`);
+    console.log(
+      `app state theme = ${state?.theme}, else ${state?.theme ?? 'dark'}, curr scheme=${colorScheme}`
+    );
     if (colorScheme !== (state?.theme ?? 'dark')) {
       setColorScheme(state?.theme ?? 'dark'); // or 'light', or 'system'
     }

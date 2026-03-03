@@ -1,5 +1,5 @@
-import FuelTracker from "@/components/fuel-tracker";
-import Animated from "react-native-reanimated";
+import FuelTracker from '@/components/fuel-tracker';
+import Animated from 'react-native-reanimated';
 
 export default function TabOneScreen() {
   return (

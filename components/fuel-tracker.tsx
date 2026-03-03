@@ -3,76 +3,127 @@ import { Text } from '@/components/ui/text';
 import {
   getCurrentPositionAsync,
   LocationAccuracy,
-  LocationSubscription,
   PermissionStatus,
   requestForegroundPermissionsAsync,
-  watchPositionAsync,
+  requestBackgroundPermissionsAsync,
+  startLocationUpdatesAsync,
   LocationObject,
-  getProviderStatusAsync,
   hasServicesEnabledAsync,
+  LocationTaskServiceOptions,
+  hasStartedLocationUpdatesAsync,
+  stopLocationUpdatesAsync,
 } from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
 import { Fuel, MapPin, Navigation, Play, RotateCcw, Square } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { useObject, useQuery, useRealm } from '@realm/react';
 import 'react-native-get-random-values';
-import { v4 as uuidv4 } from "uuid";
-import { AppState, LocationPoint, Trip, updateTripDistance } from '@/models/models';
+import { v4 as uuidv4 } from 'uuid';
+import realm, { AppState, LocationPoint, Trip, updateTripDistance } from '@/models/models';
 
 const ACCURACY = LocationAccuracy.BestForNavigation;
-const TIME_INTERVAL = 1000;
+// const TIME_INTERVAL = 1000;
 const DISTANCE_INTERVAL = 1;
+const FOREGROUND_SERVICE: LocationTaskServiceOptions = {
+  notificationTitle: 'Location Tracking Active',
+  notificationBody: 'Your location is being tracked in the background',
+  notificationColor: '#333333',
+};
+const LOCATION_TASK_NAME = 'background-location-task';
+
+TaskManager.defineTask<{ locations: LocationObject[] }>(
+  LOCATION_TASK_NAME,
+  ({ data: { locations }, error }): any => {
+    if (error) {
+      // check `error.message` for more details.
+      console.error('GPS error:', error);
+      realm.write(() => {
+        const curState = realm.objects<AppState>(AppState)[0];
+        curState.gpsStatus = 'error';
+      });
+      return;
+    }
+    console.log('Received new locations', locations);
+    if (locations.length > 0) {
+      realm.write(() => {
+        locations.forEach((pos) => {
+          const curState = realm.objects<AppState>(AppState)[0];
+          if (curState.lastTripId) {
+            const trip = realm.objectForPrimaryKey(Trip, curState.lastTripId);
+            if (trip) {
+              const point: LocationPoint = realm.create(LocationPoint, {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                speed: pos.coords.speed ?? 0,
+                timestamp: new Date(pos.timestamp),
+                accuracy: pos.coords.accuracy ?? 0,
+              });
+              trip.points.push(point);
+
+              updateTripDistance(trip);
+            }
+          }
+        });
+      });
+    }
+  }
+);
 
 const FuelTracker = () => {
   const [fuelSpent, setFuelSpent] = useState(0);
-  const [startPosition, setStartPosition] = useState<LocationObject | null>(null);
-  const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'active' | 'error' | 'disabled'>('idle');
 
-  const watchIdRef = useRef<LocationSubscription | null>(null);
-
-  const [tripId, setTripId] = useState<string>("");
-  const realm = useRealm(); 
+  const [tripId, setTripId] = useState<string>('');
+  const realm = useRealm();
   const trip = useObject(Trip, tripId);
   const appState = useQuery(AppState)[0];
-  const { isTracking, consumptionRate } = appState;
+  const { isTracking, consumptionRate, gpsStatus } = appState;
+  const setGpsStatus = useCallback((newGpsStatus: typeof gpsStatus) => {
+    realm.write(() => {
+      appState.gpsStatus = newGpsStatus;
+    });
+  }, []);
   const setIsTracking = useCallback((newState: boolean) => {
     realm.write(() => {
       appState.isTracking = newState;
-    })
+    });
   }, []);
   const setConsumptionRate = useCallback((newRate: string) => {
     realm.write(() => {
       appState.consumptionRate = newRate;
-    })
+    });
   }, []);
   const duration = trip?.duration || 0;
   const points = trip?.points || Array<LocationPoint>();
 
   const currentPosition = {
-    coords: (points && points.length && points.length > 0) ? {
-      latitude: points?.at(points.length - 1)!.latitude,
-      longitude: points?.at(points.length - 1)!.longitude
-    } : {
-      latitude: 0,
-      longitude: 0
-    }
+    coords:
+      points && points.length && points.length > 0
+        ? {
+            latitude: points?.at(points.length - 1)!.latitude,
+            longitude: points?.at(points.length - 1)!.longitude,
+          }
+        : {
+            latitude: 0,
+            longitude: 0,
+          },
   };
-  const distance = trip?.distance || 0
+  const distance = trip?.distance || 0;
 
   const addTrip = useCallback(() => {
-    const uuid = uuidv4()
-    realm.write(() => { 
-      realm.create("Trip", { 
-        id: uuid, 
-        date: new Date(), 
-        duration: 0, 
-        distance: 0, 
-        points: [], 
-      }); 
+    const uuid = uuidv4();
+    realm.write(() => {
+      realm.create('Trip', {
+        id: uuid,
+        date: new Date(),
+        duration: 0,
+        distance: 0,
+        points: [],
+      });
 
       appState.lastTripId = uuid;
     });
-    
+
     return uuid;
   }, []);
 
@@ -84,45 +135,18 @@ const FuelTracker = () => {
   }, [distance, consumptionRate]);
 
   // Start watching position
-  const startWatch = useCallback(async () =>{
+  const startWatch = useCallback(async () => {
     if (!trip) {
-      console.log("trip is null");
+      console.log('trip is null');
       return;
     }
 
-    watchIdRef.current = await watchPositionAsync(
-      {
-        accuracy: ACCURACY,
-        timeInterval: TIME_INTERVAL,
-        distanceInterval: DISTANCE_INTERVAL,
-      },
-      (pos) => {
-        realm.write(() => { 
-          const point: LocationPoint = realm.create(LocationPoint, {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            speed: pos.coords.speed ?? 0,
-            timestamp: new Date(pos.timestamp),
-            accuracy: pos.coords.accuracy ?? 0,
-          });
-
-          trip.points.push(point);
-          
-          updateTripDistance(trip);
-        });
-
-        /* console.log(`time:${pos.timestamp - startTime},`, {
-            acc: (pos.coords.accuracy || DISTANCE_INTERVAL).toFixed(5),
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-            speed: pos.coords.speed?.toFixed(5),
-          }); */
-      },
-      (error) => {
-        console.error('GPS error:', error);
-        setGpsStatus('error');
-      }
-    );
+    await startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+      accuracy: ACCURACY,
+      distanceInterval: DISTANCE_INTERVAL,
+      // Requires a foreground service notification for Android
+      foregroundService: FOREGROUND_SERVICE,
+    });
   }, [trip]);
 
   useEffect(() => {
@@ -135,17 +159,21 @@ const FuelTracker = () => {
   }, [isTracking]);
 
   const startTracking = useCallback(async () => {
-    const { status } = await requestForegroundPermissionsAsync();
-    if (status !== PermissionStatus.GRANTED) {
+    const { status: fgStatus } = await requestForegroundPermissionsAsync();
+    if (fgStatus !== PermissionStatus.GRANTED) {
       // toast.error("Geolocation is not supported by your device");
       console.error('Geolocation is not supported by your device');
       return;
+    }
+    const { status: bgStatus } = await requestBackgroundPermissionsAsync();
+    if (bgStatus !== PermissionStatus.GRANTED) {
     }
 
     const isEnabledGPS = await hasServicesEnabledAsync();
     if (!isEnabledGPS) {
       setGpsStatus('disabled');
-      console.log("Could not get your location. Please enable GPS.");
+      console.log('Could not get your location. Please enable GPS.');
+      return;
     }
 
     const rate = parseFloat(consumptionRate);
@@ -172,31 +200,28 @@ const FuelTracker = () => {
       (error) => {
         console.error('GPS error:', error);
         setGpsStatus('error');
-        console.log("Could not get your location. Please enable GPS.");
+        console.log('Could not get your location. Please enable GPS.');
         // toast.error("Could not get your location. Please enable GPS.");
       }
     );
   }, [consumptionRate]);
 
-  const stopTracking = useCallback(() => {
-    console.log(watchIdRef.current);
-    if (watchIdRef.current !== null) {
-      watchIdRef.current.remove();
-      watchIdRef.current = null;
+  const stopTracking = useCallback(async () => {
+    if (await hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME)) {
+      await stopLocationUpdatesAsync(LOCATION_TASK_NAME);
     }
 
-    setTripId(() => "");
+    setTripId(() => '');
 
     setIsTracking(false);
     setGpsStatus('idle');
     // toast.info("Tracking stopped");
-    console.log("Tracking stopped")
+    console.log('Tracking stopped');
   }, []);
 
   const resetTracking = useCallback(() => {
     stopTracking();
     setFuelSpent(0);
-    setStartPosition(null);
   }, [stopTracking]);
 
   return (
@@ -275,7 +300,7 @@ const FuelTracker = () => {
                 ? 'bg-success'
                 : gpsStatus === 'acquiring'
                   ? 'bg-primary'
-                  : (gpsStatus === 'error' || gpsStatus === 'disabled')
+                  : gpsStatus === 'error' || gpsStatus === 'disabled'
                     ? 'bg-destructive'
                     : 'bg-muted-foreground'
             }`}
@@ -287,8 +312,8 @@ const FuelTracker = () => {
                 ? 'Acquiring GPS...'
                 : gpsStatus === 'error'
                   ? 'GPS Error'
-                  : gpsStatus === 'disabled' 
-                    ? 'GPS service disabled' 
+                  : gpsStatus === 'disabled'
+                    ? 'GPS service disabled'
                     : 'GPS Standby'}
           </Text>
         </View>
