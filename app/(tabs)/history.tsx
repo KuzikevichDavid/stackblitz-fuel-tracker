@@ -3,13 +3,12 @@ import { NAV_THEME } from '@/lib/theme';
 import { AppState, Trip } from '@/models/models';
 import { Theme } from '@react-navigation/native';
 import { useQuery, useRealm } from '@realm/react';
-import { Link, Stack } from 'expo-router';
+import { Link } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Fuel, MapPinned, Trash2 } from 'lucide-react-native';
+import { MapPinned, Trash2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
-import { useEffect, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: '2-digit',
@@ -23,7 +22,7 @@ const timeFormat = (secondsDiff: number) => {
   return `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
 };
 
-export default function HistoryScreen() {
+export default function TabThreeScreen() {
   const insets = useSafeAreaInsets();
   const realm = useRealm();
   const trips = useQuery(Trip);

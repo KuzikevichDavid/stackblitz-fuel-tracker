@@ -34,13 +34,28 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         headerLeft: () => <Fuel className="h-8 w-8" color={colors.primary} />,
         headerRight: () => (
-          <HeaderRight
-            theme={theme}
-            realm={realm}
-            appState={appState}
-            scheme={scheme}
-            insets={insets}
-          />
+          <>
+            <Link href="../settings" asChild>
+              <Pressable>
+                {({ pressed }) => {
+                  console.log(`settings link pressed? ${pressed}`);
+
+                  return (
+                    <FontAwesome
+                      name="gear"
+                      size={25}
+                      color={colors.text}
+                      /* style={{
+                        marginLeft: 15,
+                        marginRight: insets!.right,
+                        opacity: pressed ? 0.5 : 1,
+                      }} */
+                    />
+                  );
+                }}
+              </Pressable>
+            </Link>
+          </>
         ),
       }}>
       <Tabs.Screen
@@ -55,6 +70,13 @@ export default function TabLayout() {
         options={{
           title: 'Map',
           tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color }) => <TabBarIcon name="history" color={color} />,
         }}
       />
     </Tabs>
@@ -114,11 +136,11 @@ function HeaderRight(props: Props) {
   return (
     <>
       {/* <View style={{marginRight: insets!.right}}> */}
-      <ThemeToggle scheme={scheme!} realm={realm!} appState={appState!} />
-      <Link href="../history" asChild>
+      {/* <ThemeToggle scheme={scheme!} realm={realm!} appState={appState!} /> */}
+      <Link href="../settings" asChild>
         <Pressable>
           {({ pressed }) => {
-            console.log(`history link pressed? ${pressed}`);
+            console.log(`settings link pressed? ${pressed}`);
 
             return (
               <FontAwesome

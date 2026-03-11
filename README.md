@@ -4,13 +4,19 @@
 
 # EAS development build
 
-config 
+ - config 
 
 ```bash
 eas build:configure
 ```
 
-Ccommand to create development build
+ - login to sevices
+
+```bash
+eas login
+```
+
+ - command to create development build
 
 ```bash
 eas build -p android --profile development

@@ -59,7 +59,7 @@ function RootLayoutNav() {
       <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="history" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
         </Stack>
       </ThemeProvider>
       <PortalHost />
