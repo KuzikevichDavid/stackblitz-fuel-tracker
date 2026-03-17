@@ -14,13 +14,25 @@ import {
   stopLocationUpdatesAsync,
 } from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import { Fuel, MapPin, Navigation, Play, RotateCcw, Square } from 'lucide-react-native';
+import {
+  Fuel,
+  MapPin,
+  Navigation,
+  Play,
+  RotateCcw,
+  Square,
+  Edit,
+  Gauge,
+} from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useObject, useQuery, useRealm } from '@realm/react';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import realm, { AppState, LocationPoint, Trip, updateTripDistance } from '@/models/models';
+import { Link } from 'expo-router';
+import { NAV_THEME, THEME } from '@/lib/theme';
+import { useColorScheme } from 'nativewind';
 
 const ACCURACY = LocationAccuracy.BestForNavigation;
 // const TIME_INTERVAL = 1000;
@@ -73,9 +85,14 @@ TaskManager.defineTask<{ locations: LocationObject[] }>(
 const FuelTracker = () => {
   const [fuelSpent, setFuelSpent] = useState(0);
 
+  const { colorScheme } = useColorScheme();
+  const { colors } = NAV_THEME[colorScheme ?? 'light'];
+  const colorsAll = THEME[colorScheme ?? 'light'];
+
   const [tripId, setTripId] = useState<string>('');
   const realm = useRealm();
   const trip = useObject(Trip, tripId);
+  const speed = (trip?.points.length || 0) > 0 ? trip?.points[trip.points.length - 1].speed : 0;
   const appState = useQuery(AppState)[0];
   const { isTracking, consumptionRate, gpsStatus } = appState;
   const setGpsStatus = useCallback((newGpsStatus: typeof gpsStatus) => {
@@ -86,11 +103,6 @@ const FuelTracker = () => {
   const setIsTracking = useCallback((newState: boolean) => {
     realm.write(() => {
       appState.isTracking = newState;
-    });
-  }, []);
-  const setConsumptionRate = useCallback((newRate: string) => {
-    realm.write(() => {
-      appState.consumptionRate = newRate;
     });
   }, []);
   const duration = trip?.duration || 0;
@@ -225,9 +237,9 @@ const FuelTracker = () => {
   }, [stopTracking]);
 
   return (
-    <View className="mx-auto flex min-h-[100dvh] min-h-screen max-w-lg flex-col p-4 pb-8">
+    <View className="mx-auto flex max-w-lg flex-col gap-2 p-2 pb-8">
       {/* Header */}
-      <View className="py-6 text-center">
+      <View className="py-1 text-center">
         {/* <View className="flex items-center justify-center gap-3 mb-2">
           <Fuel className="w-8 h-8 text-primary" />
           <Text className="font-display text-2xl font-bold text-foreground tracking-wide">
@@ -239,40 +251,44 @@ const FuelTracker = () => {
         </Text>
       </View>
 
-      {/* Consumption Rate Input */}
-      <View className="dashboard-card mb-4 p-5">
-        <Text className="mb-2 block text-center text-sm font-medium text-muted-foreground">
-          Consumption Rate (L/100km)
-        </Text>
-        <View className="relative">
-          <TextInput
-            inputMode="decimal"
-            keyboardType="numeric"
-            // step="0.1"
-            // min="0"
-            value={consumptionRate}
-            onChangeText={setConsumptionRate}
-            editable={!isTracking}
-            className="h-14 w-full rounded-lg border border-border bg-muted px-4 font-display text-xl text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="8.5"
-          />
-          <Text className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-            L/100km
-          </Text>
-        </View>
+      {/* Consumption Rate */}
+      <View className="dashboard-card mb-2 flex-row gap-3 p-3 text-center text-sm font-medium ">
+        <Text className="text-muted-foreground">Consumption Rate (L/100km):</Text>
+        <Link href="../settings" className="flex-row items-center" asChild>
+          <Pressable>
+            <Text> {consumptionRate} </Text>
+            <Edit color={colors.text} size={25} />
+          </Pressable>
+        </Link>
       </View>
 
       {/* Main Display */}
-      <View className="dashboard-card mb-4 flex flex-1 flex-col justify-center p-6">
-        {/* Fuel Spent Display */}
-        <View className="mb-8">
+      <View className="dashboard-card mb-2 flex flex-col justify-center p-3">
+        {/* Speed Display */}
+        <View className="mb-8 text-center">
           <View className="mb-2 flex-row items-center justify-center gap-2">
-            <Fuel className="h-5 w-5 text-primary" />
+            <Gauge color={colorsAll.primary} className="h-5 w-5 text-primary" />
+            <Text className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+              Speed
+            </Text>
+          </View>
+          <Text
+            /* style={{color: colorsAll.primary}} */
+            className="digit-display text-center text-6xl font-bold text-primary">
+            {distance.toFixed(2)}
+          </Text>
+          <Text className="text-center text-muted-foreground">km/h</Text>
+        </View>
+
+        {/* Fuel Spent Display */}
+        <View className="mb-6">
+          <View className="mb-2 flex-row items-center justify-center gap-2">
+            <Fuel color={colorsAll.destructive} className="h-4 w-4 text-destructive" />
             <Text className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
               Fuel Spent
             </Text>
           </View>
-          <Text className="digit-display text-center text-6xl font-bold text-primary">
+          <Text className="digit-display text-center text-4xl font-semibold text-destructive">
             {fuelSpent.toFixed(2)}
           </Text>
           <Text className="text-center text-lg text-muted-foreground">liters</Text>
@@ -281,7 +297,7 @@ const FuelTracker = () => {
         {/* Distance Display */}
         <View className="mb-6 text-center">
           <View className="mb-2 flex-row items-center justify-center gap-2">
-            <Navigation className="h-4 w-4 text-success" />
+            <Navigation color={colorsAll.success} className="h-4 w-4 text-success" />
             <Text className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
               Distance Traveled
             </Text>
@@ -322,7 +338,7 @@ const FuelTracker = () => {
         {isTracking && currentPosition.coords && (
           <View className="mt-4 text-center">
             <View className="flex-row items-center justify-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3" />
+              <MapPin color={colors.text} className="h-3 w-3" />
               <Text>
                 {currentPosition.coords.latitude.toFixed(5)},{' '}
                 {currentPosition.coords.longitude.toFixed(5)}

@@ -7,6 +7,7 @@
     "ios": "expo run:ios",
     "start": "expo start",
     "dev": "expo start --dev-client",
+    "dev:clean": "expo start --dev-client --clear",
     "prebuild": "expo prebuild",
     "eas:build": "eas build -p android --profile development",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
