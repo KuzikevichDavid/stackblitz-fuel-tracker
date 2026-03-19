@@ -56,7 +56,7 @@ TaskManager.defineTask<{ locations: LocationObject[] }>(
       });
       return;
     }
-    console.log('Received new locations', locations);
+    // console.log('Received new locations', locations);
     if (locations.length > 0) {
       realm.write(() => {
         locations.forEach((pos) => {
@@ -92,7 +92,8 @@ const FuelTracker = () => {
   const [tripId, setTripId] = useState<string>('');
   const realm = useRealm();
   const trip = useObject(Trip, tripId);
-  const speed = (trip?.points.length || 0) > 0 ? trip?.points[trip.points.length - 1].speed : 0;
+  const speed =
+    (trip?.points.length || 0) > 0 ? trip?.points[trip.points.length - 1].speed || 0 : 0;
   const appState = useQuery(AppState)[0];
   const { isTracking, consumptionRate, gpsStatus } = appState;
   const setGpsStatus = useCallback((newGpsStatus: typeof gpsStatus) => {
@@ -275,7 +276,7 @@ const FuelTracker = () => {
           <Text
             /* style={{color: colorsAll.primary}} */
             className="digit-display text-center text-6xl font-bold text-primary">
-            {distance.toFixed(2)}
+            {speed.toFixed(2)}
           </Text>
           <Text className="text-center text-muted-foreground">km/h</Text>
         </View>

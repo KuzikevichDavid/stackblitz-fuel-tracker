@@ -9,11 +9,14 @@ export default function ConsumptionRateInput() {
   const appState = useQuery(AppState)[0];
   const { isTracking, consumptionRate } = appState;
 
-  const setConsumptionRate = useCallback((newRate: string) => {
-    realm.write(() => {
-      appState.consumptionRate = newRate;
-    });
-  }, []);
+  const setConsumptionRate = useCallback(
+    (newRate: string) => {
+      realm.write(() => {
+        appState.consumptionRate = newRate;
+      });
+    },
+    [realm, appState]
+  );
 
   return (
     <View className="dashboard-card mb-4 gap-3 p-5 text-center text-sm font-medium">
