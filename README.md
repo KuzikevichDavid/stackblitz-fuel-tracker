@@ -2,7 +2,23 @@
 
 [Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/KuzikevichDavid/stackblitz-fuel-tracker)
 
-# EAS development build
+# EAS 
+
+## evironment variables
+
+- add a variable
+
+```powershell
+eas env
+```
+
+ - remove variable
+
+```powershell
+eas env:delete
+```
+
+## make development build
 
  - config 
 
@@ -20,4 +36,10 @@ eas login
 
 ```bash
 eas build -p android --profile development
+```
+
+## build local ".apk"
+
+```bash
+eas build -p android --profile local
 ```
