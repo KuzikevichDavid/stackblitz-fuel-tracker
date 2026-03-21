@@ -36,7 +36,8 @@ import { useColorScheme } from 'nativewind';
 
 const ACCURACY = LocationAccuracy.BestForNavigation;
 // const TIME_INTERVAL = 1000;
-const DISTANCE_INTERVAL = 1;
+const DISTANCE_INTERVAL = 1; 
+const SPEED_CONVERT_COEF = 3.6;
 const FOREGROUND_SERVICE: LocationTaskServiceOptions = {
   notificationTitle: 'Location Tracking Active',
   notificationBody: 'Your location is being tracked in the background',
@@ -276,7 +277,7 @@ const FuelTracker = () => {
           <Text
             /* style={{color: colorsAll.primary}} */
             className="digit-display text-center text-6xl font-bold text-primary">
-            {speed.toFixed(2)}
+            {(speed * SPEED_CONVERT_COEF).toFixed(2)}
           </Text>
           <Text className="text-center text-muted-foreground">km/h</Text>
         </View>
