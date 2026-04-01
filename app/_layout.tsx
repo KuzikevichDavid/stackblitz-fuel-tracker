@@ -1,11 +1,13 @@
 import '@/global.css';
 
 import { NAV_THEME } from '@/lib/theme';
-import realm, { AppState } from '@/models/models';
+import realm, { AppState, defaultAppState } from '@/models/models';
 import { ThemeProvider } from '@react-navigation/native';
 import { RealmProvider, useQuery, useRealm } from '@realm/react';
+import { Text } from '@/components/ui/text';
 import { PortalHost } from '@rn-primitives/portal';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -24,7 +26,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <RealmProvider realm={realm} /* {...realmConfig} */>
+      <RealmProvider realm={realm}>
         <RootLayoutNav />
       </RealmProvider>
     </SafeAreaProvider>
@@ -45,18 +47,30 @@ function RootLayoutNav() {
     if (colorScheme !== (state?.theme ?? 'dark')) {
       setColorScheme(state?.theme ?? 'dark'); // or 'light', or 'system'
     }
+
+    // REALM onFirstOpen not work
+    if (!state) {
+      realm.write(() => {
+        realm.create(AppState, defaultAppState);
+      });
+    }
+
     return () => {
       if (realm.isClosed) return;
 
       realm.write(() => {
         state.isTracking = false;
+        state.gpsStatus = 'idle';
       });
     };
   }, []);
 
+  if (!state) return <Text>somthing go wrong...</Text>;
+
   return (
     <>
       <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
+        <StatusBar style={'auto'} />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen

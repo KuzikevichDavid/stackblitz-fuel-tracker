@@ -12,6 +12,7 @@ import {
   LocationTaskServiceOptions,
   hasStartedLocationUpdatesAsync,
   stopLocationUpdatesAsync,
+  enableNetworkProviderAsync,
 } from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import {
@@ -25,7 +26,7 @@ import {
   Gauge,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { useObject, useQuery, useRealm } from '@realm/react';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
@@ -36,7 +37,7 @@ import { useColorScheme } from 'nativewind';
 
 const ACCURACY = LocationAccuracy.BestForNavigation;
 // const TIME_INTERVAL = 1000;
-const DISTANCE_INTERVAL = 1; 
+const DISTANCE_INTERVAL = 1;
 const SPEED_CONVERT_COEF = 3.6;
 const FOREGROUND_SERVICE: LocationTaskServiceOptions = {
   notificationTitle: 'Location Tracking Active',
@@ -170,7 +171,7 @@ const FuelTracker = () => {
       appState.lastTripId = tripId;
     });
     startWatch();
-  }, [isTracking]);
+  }, [isTracking, tripId, startWatch]);
 
   const startTracking = useCallback(async () => {
     const { status: fgStatus } = await requestForegroundPermissionsAsync();
@@ -188,6 +189,15 @@ const FuelTracker = () => {
       setGpsStatus('disabled');
       console.log('Could not get your location. Please enable GPS.');
       return;
+    }
+
+    if (Platform.OS === 'android') {
+      try {
+        await enableNetworkProviderAsync();
+      } catch (error) {
+        console.log('Error enabling network provider, user might have denied the prompt:', error);
+        // Handle the case where the user declines the prompt
+      }
     }
 
     const rate = parseFloat(consumptionRate);

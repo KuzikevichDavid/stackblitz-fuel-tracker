@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import Realm from 'realm';
 
 export class LocationPoint extends Realm.Object<LocationPoint> {
@@ -104,9 +105,20 @@ export class AppState extends Realm.Object<AppState> {
   };
 }
 
+export const defaultAppState: Partial<AppState> = {
+  _id: new Realm.BSON.ObjectId(),
+  theme: 'dark',
+  lastTripId: '',
+  isTracking: false,
+  consumptionRate: '8.5',
+  gpsStatus: 'idle',
+};
+
 export const realmConfig: Realm.Configuration = {
   schema: [Trip, LocationPoint, AppState],
   schemaVersion: 2,
+  path: 'default.realm',
+
   onMigration: (oldRealm, newRealm) => {
     if (oldRealm.schemaVersion < 1) {
       const oldObjects = oldRealm.objects('AppState');
@@ -127,14 +139,7 @@ export const realmConfig: Realm.Configuration = {
     }
   },
   onFirstOpen: (realm: Realm) => {
-    realm.create(AppState, {
-      _id: new Realm.BSON.ObjectId(),
-      theme: 'dark',
-      lastTripId: '',
-      isTracking: false,
-      consumptionRate: '8.5',
-      gpsStatus: 'idle',
-    });
+    realm.create(AppState, defaultAppState);
   },
 };
 
