@@ -36,8 +36,8 @@ import { NAV_THEME, THEME } from '@/lib/theme';
 import { useColorScheme } from 'nativewind';
 
 const ACCURACY = LocationAccuracy.BestForNavigation;
-// const TIME_INTERVAL = 1000;
-const DISTANCE_INTERVAL = 1;
+const TIME_INTERVAL = 100;
+const DISTANCE_INTERVAL = 10;
 const SPEED_CONVERT_COEF = 3.6;
 const FOREGROUND_SERVICE: LocationTaskServiceOptions = {
   notificationTitle: 'Location Tracking Active',
@@ -58,7 +58,7 @@ TaskManager.defineTask<{ locations: LocationObject[] }>(
       });
       return;
     }
-    // console.log('Received new locations', locations);
+    console.log('Received new locations', locations.length);
     if (locations.length > 0) {
       realm.write(() => {
         locations.forEach((pos) => {
@@ -158,7 +158,11 @@ const FuelTracker = () => {
 
     await startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: ACCURACY,
+      timeInterval: TIME_INTERVAL,
+      deferredUpdatesInterval: TIME_INTERVAL,
       distanceInterval: DISTANCE_INTERVAL,
+      deferredUpdatesDistance: DISTANCE_INTERVAL,
+      deferredUpdatesTimeout: 10000,
       // Requires a foreground service notification for Android
       foregroundService: FOREGROUND_SERVICE,
     });
@@ -191,14 +195,14 @@ const FuelTracker = () => {
       return;
     }
 
-    if (Platform.OS === 'android') {
-      try {
-        await enableNetworkProviderAsync();
-      } catch (error) {
-        console.log('Error enabling network provider, user might have denied the prompt:', error);
-        // Handle the case where the user declines the prompt
-      }
+    // if (Platform.OS === 'android') {
+    try {
+      await enableNetworkProviderAsync();
+    } catch (error) {
+      console.log('Error enabling network provider, user might have denied the prompt:', error);
+      // Handle the case where the user declines the prompt
     }
+    // }
 
     const rate = parseFloat(consumptionRate);
     if (isNaN(rate) || rate <= 0) {
@@ -210,24 +214,25 @@ const FuelTracker = () => {
     setGpsStatus('acquiring');
     setFuelSpent(0);
 
-    getCurrentPositionAsync({
-      accuracy: ACCURACY,
-    }).then(
-      (startPosition) => {
-        setGpsStatus('active');
-        const tripId = addTrip();
-        setTripId(() => tripId);
-        setIsTracking(true);
-        // toast.success("Tracking started from gas station!");
-        console.log('Tracking started from gas station!');
-      },
-      (error) => {
-        console.error('GPS error:', error);
-        setGpsStatus('error');
-        console.log('Could not get your location. Please enable GPS.');
-        // toast.error("Could not get your location. Please enable GPS.");
-      }
-    );
+    try {
+      await getCurrentPositionAsync({
+        accuracy: ACCURACY,
+        timeInterval: TIME_INTERVAL,
+        distanceInterval: DISTANCE_INTERVAL,
+        mayShowUserSettingsDialog: true,
+      });
+      setGpsStatus('active');
+      const tripId = addTrip();
+      setTripId(() => tripId);
+      setIsTracking(true);
+      // toast.success("Tracking started from gas station!");
+      console.log('Tracking started from gas station!');
+    } catch (error) {
+      console.error('GPS error:', error);
+      setGpsStatus('error');
+      console.log('Could not get your location. Please enable GPS.');
+      // toast.error("Could not get your location. Please enable GPS.");
+    }
   }, [consumptionRate]);
 
   const stopTracking = useCallback(async () => {

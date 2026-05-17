@@ -2,7 +2,6 @@ import 'tsx/cjs'; // Recommended for full TypeScript support in dynamic config
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  // console.log(config.extra?.eas?.projectId);
   return {
     ...config,
     name: 'fuel-tracker',
@@ -20,6 +19,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-router',
       'expo-background-task',
       '@maplibre/maplibre-react-native',
+      [
+        'expo-location',
+        {
+          'locationWhenInUsePermision': 'allow location?',
+          'loationAlwaysPermission': 'allow background?',
+          'isAndroidBackgroundLocationEnabled': true
+        }
+      ],
       [
         'expo-font',
         {
@@ -83,15 +90,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       package: 'com.crippersworkshop.fueltracker',
       permissions: [
+        'ACCESS_BACKGROUND_LOCATION',
+        'ACCESS_COARSE_LOCATION',
+        'ACCESS_FINE_LOCATION',
+        'ACCESS_NETWORK_STATE',
+        'FOREGROUND_SERVICE',
+        'FOREGROUND_SERVICE_LOCATION',
+        'INTERNET',
+        'READ_EXTERNAL_STORAGE',
         'SYSTEM_ALERT_WINDOW',
         'VIBRATE',
-        'READ_EXTERNAL_STORAGE',
         'WRITE_EXTERNAL_STORAGE',
-        'ACCESS_NETWORK_STATE',
-        'INTERNET',
-        'ACCESS_FINE_LOCATION',
-        'ACCESS_COARSE_LOCATION',
-        'ACCESS_BACKGROUND_LOCATION',
       ],
     },
     extra: {
